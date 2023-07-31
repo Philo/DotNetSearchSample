@@ -1,0 +1,12 @@
+﻿@using System.Reflection;
+@using System.Linq.Expressions;
+@model SearchParameters
+
+<div class="row">
+    <div class="col-md-4">
+        <editor for="Query" template-name="Search_Text" />
+        <editor for="IsArchived" template-name="Search_Boolean" />
+        <editor for="State" />
+        <editor for="Paging!.Size" template-name="Search_Size" />
+    </div>
+</div>

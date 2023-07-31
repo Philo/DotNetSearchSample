@@ -1,0 +1,13 @@
+﻿@using System.Reflection;
+@using System.Linq.Expressions;
+@model int?
+
+<div class="form-group">
+    <label class="form-label" asp-for="@Model"></label>
+    <select class="form-control" asp-for="@Model">
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+    </select>
+</div>

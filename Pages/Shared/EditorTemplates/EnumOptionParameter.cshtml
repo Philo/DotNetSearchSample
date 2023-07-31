@@ -1,0 +1,12 @@
+﻿@using System.Reflection;
+@using System.Linq.Expressions;
+@model EnumOptionParameter?
+
+@{
+    var options = Html.GetEnumSelectList<EnumOptionParameter>().Prepend(new SelectListItem { Text = "Not Set", Value = string.Empty }).ToList();
+}
+
+<div class="form-group">
+    <label asp-for="@Model"></label>
+    <select class="form-control" asp-for="@Model" asp-items="options"></select>
+</div>
