@@ -62,6 +62,27 @@
 
         return qs.ToDictionary(s => s.Key, s => s.Value.ToString());
     }
+
+    bool IsSortableColumn<T>(Expression<Func<IndexModel, T>> expression)
+    {
+        return (expression.Body as MemberExpression)?.Member.IsDefined(typeof(SortableAttribute), false) ?? false;
+    }
+
+    async Task RenderSortColumnHeader<T>(Expression<Func<IndexModel, T>> expression)
+    {
+        if (IsSortableColumn(expression))
+        {
+            <a asp-page="Index" asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(expression)">
+                @Html.DisplayNameFor(expression)
+            </a>
+        }
+        else
+        {
+            <span>
+                @Html.DisplayNameFor(expression)
+            </span>
+        }
+    }
 }
 
 
@@ -74,31 +95,19 @@
 <table class="table table-responsive-lg">
     <tr>
         <th>
-            <a asp-page="Index" 
-                asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(m => m.Data!.First().GivenName)" 
-                asp-display-name-for="@Model.Data!.First().GivenName"></a>
+            @{ await RenderSortColumnHeader(m => m.Data!.First().GivenName); }
         </th>
         <th>
-            <a asp-page="Index" 
-            asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(m => m.Data!.First().FamilyName)" 
-            asp-display-name-for="@Model.Data!.First().FamilyName"></a>
+            @{ await RenderSortColumnHeader(m => m.Data!.First().FamilyName); }
         </th>
         <th>
-            <a asp-page="Index" 
-                asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(m => m.Data!.First().EmailAddress)" 
-                asp-display-name-for="@Model.Data!.First().EmailAddress"></a>
+            @{ await RenderSortColumnHeader(m => m.Data!.First().EmailAddress); }
         </th>
         <th>
-            <a asp-page="Index" 
-            asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(m => m.Data!.First().State)" 
-            asp-display-name-for="@Model.Data!.First().State">
-            </a>
+            @{ await RenderSortColumnHeader(m => m.Data!.First().State); }
         </th>
         <th>
-            <a asp-page="Index" 
-            asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(m => m.Data!.First().IsArchived)" 
-            asp-display-name-for="@Model.Data!.First().IsArchived">
-            </a>
+            @{ await RenderSortColumnHeader(m => m.Data!.First().IsArchived); }
         </th>
     </tr>
     @foreach(var item in Model!.Data ?? Enumerable.Empty<DataModel>())

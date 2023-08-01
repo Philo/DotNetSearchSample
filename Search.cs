@@ -57,13 +57,15 @@ namespace SearchSample
         {
             if (request.SearchParameters.SortBy != null && request.SearchParameters.SortBy.Name != null && request.SearchParameters.SortBy.Direction != null)
             {
-                var validSortColumns = new[] { 
-                    nameof(DataModel.GivenName), 
-                    nameof(DataModel.FamilyName), 
-                    nameof(DataModel.EmailAddress), 
-                    nameof(DataModel.State), 
-                    nameof(DataModel.IsArchived) 
-                };
+                //var validSortColumns = new[] { 
+                //    nameof(DataModel.GivenName), 
+                //    nameof(DataModel.FamilyName), 
+                //    nameof(DataModel.EmailAddress), 
+                //    nameof(DataModel.State), 
+                //    nameof(DataModel.IsArchived) 
+                //};
+
+                var validSortColumns = SortableAttribute.GetSortableColumnNames<DataModel>();
 
                 var validSortDirections = new[]
                 {
@@ -123,13 +125,13 @@ namespace SearchSample
 
     public class DataModel
     {
-        [DataType(DataType.Text)]
+        [DataType(DataType.Text), Sortable]
         public string GivenName { get; set; } = string.Empty;
 
-        [DataType(DataType.Text)]
+        [DataType(DataType.Text), Sortable]
         public string FamilyName { get; set; } = string.Empty;
 
-        [DataType(DataType.EmailAddress)]
+        [DataType(DataType.EmailAddress), Sortable]
         public string EmailAddress { get; set; } = string.Empty;
 
         public bool IsArchived { get; set; } = false;
@@ -153,5 +155,16 @@ namespace SearchSample
         Active,
         Complete,
         Cancelled
+    }
+
+    [AttributeUsage(AttributeTargets.Property)]
+    public class SortableAttribute : Attribute
+    {
+        public SortableAttribute() { }
+
+        public static IEnumerable<string> GetSortableColumnNames<TData>() where TData : class
+        {
+            return typeof(TData).GetProperties().Where(p => p.IsDefined(typeof(SortableAttribute), false)).Select(p => p.Name);
+        }
     }
 }
