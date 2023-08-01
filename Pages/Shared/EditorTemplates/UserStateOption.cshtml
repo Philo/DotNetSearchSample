@@ -1,9 +1,9 @@
 ﻿@using System.Reflection;
 @using System.Linq.Expressions;
-@model EnumOptionParameter?
+@model string?
 
 @{
-    var options = Html.GetEnumSelectList<EnumOptionParameter>().Prepend(new SelectListItem { Text = "Not Set", Value = string.Empty }).ToList();
+    var options = Html.GetEnumSelectList<UserStateOption>().Prepend(new SelectListItem { Text = "Not Set", Value = string.Empty }).ToList();
 }
 
 <div class="form-group">

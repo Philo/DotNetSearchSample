@@ -3,6 +3,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 
+builder.Services.AddMediatR(c => c.RegisterServicesFromAssemblyContaining<Program>());
+builder.Services.AddTagHelperPack();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

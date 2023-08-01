@@ -7,7 +7,14 @@
 @{
     ViewData["Title"] = "Home page";
 
-    IDictionary<string, string> GetSortingQueryParameterDictionary(string? sortCol = null)
+    IDictionary<string, string> ApplySortingQueryParameterDictionaryFor<T>(Expression<Func<IndexModel, T>> expression)
+    {
+        var sortCol = Html.NameFor(expression);
+
+        return ApplySortingQueryParameterDictionary(sortCol);
+    }
+
+    IDictionary<string, string> ApplySortingQueryParameterDictionary(string? sortCol = null)
     {
         var removeParams = new[] { Html.NameFor(m => m!.Search!.Paging!.Page) };
 
@@ -34,7 +41,7 @@
         return qs.ToDictionary(s => s.Key, s => s.Value.ToString());
     }
 
-    IDictionary<string, string> GetPagingQueryParameterDictionary(int page, int? size = null)
+    IDictionary<string, string> ApplyPagingQueryParameterDictionary(int page, int? size = null)
     {
         var qs = QueryHelpers.ParseQuery(Request.QueryString.ToUriComponent());
 
@@ -47,6 +54,7 @@
         var sizeParam = Html.NameFor(m => m!.Search!.Paging!.Size);
 
         qs[pageParam] = page.ToString();
+
         if(size.HasValue)
         {
             qs[sizeParam] = size.ToString();
@@ -57,7 +65,7 @@
 }
 
 
-<form asp-page="Index" asp-antiforgery="false" method="get" asp-all-route-data="@GetPagingQueryParameterDictionary(1)">
+<form asp-page="Index" asp-antiforgery="false" method="get" asp-all-route-data="@ApplyPagingQueryParameterDictionary(1)">
     <editor for="Search" />
     <button class="btn btn-primary" type="submit">Submit</button>
 </form>
@@ -65,22 +73,44 @@
 <p>
 <table class="table table-responsive-lg">
     <tr>
-            <th><a asp-page="Index" asp-all-route-data="@GetSortingQueryParameterDictionary(Html.NameFor(m => m.Data!.First().GivenName))">@Html.DisplayNameFor(m => m.Data!.First().GivenName)</a></th>
-            <th><a asp-page="Index" asp-all-route-data="@GetSortingQueryParameterDictionary(Html.NameFor(m => m.Data!.First().FamilyName))">@Html.DisplayNameFor(m => m.Data!.First().FamilyName)</a></th>
-            <th><a asp-page="Index" asp-all-route-data="@GetSortingQueryParameterDictionary(Html.NameFor(m => m.Data!.First().EmailAddress))">@Html.DisplayNameFor(m => m.Data!.First().EmailAddress)</a></th>
-            <th><a asp-page="Index" asp-all-route-data="@GetSortingQueryParameterDictionary(Html.NameFor(m => m.Data!.First().State))">@Html.DisplayNameFor(m => m.Data!.First().State)</a></th>
-            <th><a asp-page="Index" asp-all-route-data="@GetSortingQueryParameterDictionary(Html.NameFor(m => m.Data!.First().IsArchived))">@Html.DisplayNameFor(m => m.Data!.First().IsArchived)</a></th>
-        </tr>
+        <th>
+            <a asp-page="Index" 
+                asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(m => m.Data!.First().GivenName)" 
+                asp-display-name-for="@Model.Data!.First().GivenName"></a>
+        </th>
+        <th>
+            <a asp-page="Index" 
+            asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(m => m.Data!.First().FamilyName)" 
+            asp-display-name-for="@Model.Data!.First().FamilyName"></a>
+        </th>
+        <th>
+            <a asp-page="Index" 
+                asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(m => m.Data!.First().EmailAddress)" 
+                asp-display-name-for="@Model.Data!.First().FamilyName"></a>
+        </th>
+        <th>
+            <a asp-page="Index" 
+            asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(m => m.Data!.First().State)" 
+            asp-display-name-for="@Model.Data!.First().State">
+            </a>
+        </th>
+        <th>
+            <a asp-page="Index" 
+            asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(m => m.Data!.First().IsArchived)" 
+            asp-display-name-for="@Model.Data!.First().IsArchived">
+            </a>
+        </th>
+    </tr>
     @foreach(var item in Model!.Data ?? Enumerable.Empty<DataModel>())
-        {
-            <tr>
-                <td>@Html.DisplayTextFor(m => item.GivenName)</td>
-                <td>@Html.DisplayTextFor(m => item.FamilyName)</td>
-                <td>@Html.DisplayTextFor(m => item.EmailAddress)</td>
-                <td>@Html.DisplayTextFor(m => item.State)</td>
-                <td>@Html.DisplayTextFor(m => item.IsArchived)</td>
-            </tr>
-        }
+    {
+        <tr>
+            <td asp-display-for="@item.GivenName"></td>
+            <td asp-display-for="@item.GivenName"></td>
+            <td asp-display-for="@item.FamilyName"></td>
+            <td asp-display-for="@item.State"></td>
+            <td asp-display-for="@item.IsArchived"></td>
+        </tr>
+    }
     </table>
 </p>
 
@@ -90,7 +120,7 @@
         var nextDisabled = !Model.Data.HasNextPage ? "disabled" : "";
     }
 
-    <a asp-page="Index" asp-all-route-data="@GetPagingQueryParameterDictionary(Model.Data.PageIndex - 1)" class="btn btn-default @prevDisabled">Previous</a>
+    <a asp-page="Index" asp-all-route-data="@ApplyPagingQueryParameterDictionary(Model.Data.PageIndex - 1)" class="btn btn-default @prevDisabled">Previous</a>
     <span>Page @Model.Data.PageIndex of @Model.Data.TotalPages</span>
-    <a asp-page="Index" asp-all-route-data="@GetPagingQueryParameterDictionary(Model.Data.PageIndex + 1)" class="btn btn-default @nextDisabled">Next</a>
+    <a asp-page="Index" asp-all-route-data="@ApplyPagingQueryParameterDictionary(Model.Data.PageIndex + 1)" class="btn btn-default @nextDisabled">Next</a>
 </p>
