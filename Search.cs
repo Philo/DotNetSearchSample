@@ -1,6 +1,7 @@
 ﻿using Bogus;
 using MediatR;
 using System.ComponentModel.DataAnnotations;
+using System.Linq.Expressions;
 
 namespace SearchSample
 {
@@ -54,26 +55,24 @@ namespace SearchSample
 
         private static IQueryable<DataModel> ApplySorting(IQueryable<DataModel> query, Request request)
         {
-            if (request.SearchParameters.SortBy != null)
+            if (request.SearchParameters.SortBy != null && request.SearchParameters.SortBy.Name != null && request.SearchParameters.SortBy.Direction != null)
             {
-                // Of course this isn't a good way to do sorting, for demo purposes
-                switch (request.SearchParameters.SortBy.Name?.ToLowerInvariant())
+                var validSortColumns = new[] { 
+                    nameof(DataModel.GivenName), 
+                    nameof(DataModel.FamilyName), 
+                    nameof(DataModel.EmailAddress), 
+                    nameof(DataModel.State), 
+                    nameof(DataModel.IsArchived) 
+                };
+
+                var validSortDirections = new[]
                 {
-                    case "givenname":
-                        query = request.SearchParameters.SortBy.Direction == "asc" ? query.OrderBy(s => s.GivenName) : query.OrderByDescending(s => s.GivenName);
-                        break;
-                    case "familyname":
-                        query = request.SearchParameters.SortBy.Direction == "asc" ? query.OrderBy(s => s.FamilyName) : query.OrderByDescending(s => s.FamilyName);
-                        break;
-                    case "emailaddress":
-                        query = request.SearchParameters.SortBy.Direction == "asc" ? query.OrderBy(s => s.EmailAddress) : query.OrderByDescending(s => s.EmailAddress);
-                        break;
-                    case "state":
-                        query = request.SearchParameters.SortBy.Direction == "asc" ? query.OrderBy(s => s.State) : query.OrderByDescending(s => s.State);
-                        break;
-                    case "isarchived":
-                        query = request.SearchParameters.SortBy.Direction == "asc" ? query.OrderBy(s => s.IsArchived) : query.OrderByDescending(s => s.IsArchived);
-                        break;
+                    "asc", "desc"
+                };
+
+                if(validSortColumns.Contains(request.SearchParameters.SortBy.Name) && validSortDirections.Contains(request.SearchParameters.SortBy.Direction))
+                {
+                    query = query.OrderBy(request.SearchParameters.SortBy.Name, request.SearchParameters.SortBy.Direction?.ToLowerInvariant() == "desc");
                 }
             }
 
@@ -97,6 +96,28 @@ namespace SearchSample
 
                return PaginatedList<DataModel>.Create(query, request.SearchParameters.Paging?.Page ?? 1, request.SearchParameters.Paging?.Size ?? PaginationInfo.DefaultPageSize);
             }
+        }
+
+        public static IQueryable<TEntity> OrderBy<TEntity>(this IQueryable<TEntity> source,
+                                            string orderByProperty, bool desc)
+        {
+            string command = desc ? "OrderByDescending" : "OrderBy";
+            var type = typeof(TEntity);
+            var property = type.GetProperty(orderByProperty);
+
+            if(property == null)
+            {
+                return source;
+            }
+
+            var parameter = Expression.Parameter(type, "p");
+            var propertyAccess = Expression.MakeMemberAccess(parameter, property);
+            var orderByExpression = Expression.Lambda(propertyAccess, parameter);
+            var resultExpression = Expression.Call(typeof(Queryable), command,
+                                                   new[] { type, property.PropertyType },
+                                                   source.AsQueryable().Expression,
+                                                   Expression.Quote(orderByExpression));
+            return source.AsQueryable().Provider.CreateQuery<TEntity>(resultExpression);
         }
     }
 

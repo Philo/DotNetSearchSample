@@ -86,7 +86,7 @@
         <th>
             <a asp-page="Index" 
                 asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(m => m.Data!.First().EmailAddress)" 
-                asp-display-name-for="@Model.Data!.First().FamilyName"></a>
+                asp-display-name-for="@Model.Data!.First().EmailAddress"></a>
         </th>
         <th>
             <a asp-page="Index" 
@@ -105,8 +105,8 @@
     {
         <tr>
             <td asp-display-for="@item.GivenName"></td>
-            <td asp-display-for="@item.GivenName"></td>
             <td asp-display-for="@item.FamilyName"></td>
+            <td asp-display-for="@item.EmailAddress"></td>
             <td asp-display-for="@item.State"></td>
             <td asp-display-for="@item.IsArchived"></td>
         </tr>
