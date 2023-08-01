@@ -1,7 +1,6 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.ComponentModel.DataAnnotations;
 
 namespace SearchSample.Pages
 {
@@ -10,7 +9,6 @@ namespace SearchSample.Pages
         private readonly IMediator mediator;
         private readonly ILogger<IndexModel> _logger;
 
-        [UIHint(nameof(SearchParameters))]
         [BindProperty(SupportsGet = true)]
         public SearchParameters? Search { get; set; }
 
