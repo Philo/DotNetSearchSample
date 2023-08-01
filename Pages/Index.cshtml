@@ -84,18 +84,13 @@
     </table>
 </p>
 
-            <p>
+<p>
     @{
         var prevDisabled = !Model.Data!.HasPreviousPage ? "disabled" : "";
         var nextDisabled = !Model.Data.HasNextPage ? "disabled" : "";
     }
 
-    <a asp-page="Index"
-       asp-all-route-data="@GetPagingQueryParameterDictionary(Model.Data.PageIndex - 1)"
-       class="btn btn-default @prevDisabled">Previous</a>
-    <a asp-page="Index"
-       asp-all-route-data="@GetPagingQueryParameterDictionary(Model.Data.PageIndex + 1)"
-       class="btn btn-default @nextDisabled">
-        Next
-    </a>
-            </p>
+    <a asp-page="Index" asp-all-route-data="@GetPagingQueryParameterDictionary(Model.Data.PageIndex - 1)" class="btn btn-default @prevDisabled">Previous</a>
+    <span>Page @Model.Data.PageIndex of @Model.Data.TotalPages</span>
+    <a asp-page="Index" asp-all-route-data="@GetPagingQueryParameterDictionary(Model.Data.PageIndex + 1)" class="btn btn-default @nextDisabled">Next</a>
+</p>
