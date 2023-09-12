@@ -3,75 +3,43 @@
 @using System.Reflection;
 @using Microsoft.AspNetCore.WebUtilities;
 @using System.Text;
+@using SearchSample;
 @model IndexModel
 @{
     ViewData["Title"] = "Home page";
+
+    var sortByColumnHtmlFormName = Html.NameFor(m => m!.Search!.SortBy!.Name);
+    var sortByDirectionHtmlFormName = Html.NameFor(m => m!.Search!.SortBy!.Direction);
+
+    var pageIndexHtmlFormName = Html.NameFor(m => m!.Search!.Paging!.Page);
+    var pageSizeHtmlFormName = Html.NameFor(m => m!.Search!.Paging!.Size);
 
     IDictionary<string, string> ApplySortingQueryParameterDictionaryFor<T>(Expression<Func<IndexModel, T>> expression)
     {
         var sortCol = Html.NameFor(expression);
 
-        return ApplySortingQueryParameterDictionary(sortCol);
-    }
-
-    IDictionary<string, string> ApplySortingQueryParameterDictionary(string? sortCol = null)
-    {
-        var removeParams = new[] { Html.NameFor(m => m!.Search!.Paging!.Page) };
-
-        var qs = QueryHelpers.ParseQuery(Request.QueryString.ToUriComponent());
-
-        foreach(var p in removeParams)
-        {
-            qs.Remove(p);
-        }
-
-        if (qs == null)
-        {
-            return new Dictionary<string, string>();
-        }
-
-        var sName = Html.NameFor(m => m!.Search!.SortBy!.Name);
-        var sDir = Html.NameFor(m => m!.Search!.SortBy!.Direction);
-
-        var sortDir = (qs.ContainsKey(sName) && qs[sName] == sortCol) && qs.ContainsKey(sDir) && qs[sDir] == "asc" ? "desc" : "asc";
-
-        qs[sName] = sortCol;
-        qs[sDir] = sortDir;
-
-        return qs.ToDictionary(s => s.Key, s => s.Value.ToString());
-    }
-
-    IDictionary<string, string> ApplyPagingQueryParameterDictionary(int page, int? size = null)
-    {
-        var qs = QueryHelpers.ParseQuery(Request.QueryString.ToUriComponent());
-
-        if (qs == null)
-        {
-            return new Dictionary<string, string>();
-        }
-
-        var pageParam = Html.NameFor(m => m!.Search!.Paging!.Page);
-        var sizeParam = Html.NameFor(m => m!.Search!.Paging!.Size);
-
-        qs[pageParam] = page.ToString();
-
-        if(size.HasValue)
-        {
-            qs[sizeParam] = size.ToString();
-        }
-
-        return qs.ToDictionary(s => s.Key, s => s.Value.ToString());
-    }
-
-    bool IsSortableColumn<T>(Expression<Func<IndexModel, T>> expression)
-    {
-        return (expression.Body as MemberExpression)?.Member.IsDefined(typeof(SortableAttribute), false) ?? false;
+        return HttpContext.Request.QueryString.ApplySortingQueryParameterDictionary(
+            pageIndexHtmlFormName, 
+            sortByColumnHtmlFormName, 
+            sortByDirectionHtmlFormName, 
+            sortCol);
     }
 
     async Task RenderSortColumnHeader<T>(Expression<Func<IndexModel, T>> expression)
     {
-        if (IsSortableColumn(expression))
+        if (Html.IsSortableColumn(expression))
         {
+            @if (Html.IsSortedByColumn(sortByColumnHtmlFormName, sortByDirectionHtmlFormName, expression))
+            {
+                if (Model!.Search!.SortBy!.Direction == SortDirectionOption.Asc)
+                {
+                    <text>&#8593; </text>
+                }
+                else
+                {
+                    <text>&#8595; </text>
+                }
+            }
             <a asp-page="Index" asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(expression)">
                 @Html.DisplayNameFor(expression)
             </a>
@@ -86,7 +54,7 @@
 }
 
 
-<form asp-page="Index" asp-antiforgery="false" method="get" asp-all-route-data="@ApplyPagingQueryParameterDictionary(1)">
+<form asp-page="Index" asp-antiforgery="false" method="get" asp-all-route-data="@HttpContext.Request.QueryString.ApplyPagingQueryParameterDictionary(pageIndexHtmlFormName, pageSizeHtmlFormName, 1)">
     <editor for="Search" />
     <button class="btn btn-primary" type="submit">Submit</button>
 </form>
@@ -129,7 +97,7 @@
         var nextDisabled = !Model.Data.HasNextPage ? "disabled" : "";
     }
 
-    <a asp-page="Index" asp-all-route-data="@ApplyPagingQueryParameterDictionary(Model.Data.PageIndex - 1)" class="btn btn-default @prevDisabled">Previous</a>
+    <a asp-page="Index" asp-all-route-data="@HttpContext.Request.QueryString.ApplyPagingQueryParameterDictionary(pageIndexHtmlFormName, pageSizeHtmlFormName, Model.Data.PageIndex - 1)" class="btn btn-default @prevDisabled">Previous</a>
     <span>Page @Model.Data.PageIndex of @Model.Data.TotalPages</span>
-    <a asp-page="Index" asp-all-route-data="@ApplyPagingQueryParameterDictionary(Model.Data.PageIndex + 1)" class="btn btn-default @nextDisabled">Next</a>
+    <a asp-page="Index" asp-all-route-data="@HttpContext.Request.QueryString.ApplyPagingQueryParameterDictionary(pageIndexHtmlFormName, pageSizeHtmlFormName, Model.Data.PageIndex + 1)" class="btn btn-default @nextDisabled">Next</a>
 </p>

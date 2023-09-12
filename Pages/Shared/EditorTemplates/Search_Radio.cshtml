@@ -1,0 +1,27 @@
+﻿@using System.Reflection;
+@using System.Linq.Expressions;
+@model IEnumerable<string>?
+
+@{
+    var options = Enum.GetNames<UserStateOption>().Select(s => new SelectListItem { Text = s, Value = s, Selected = Model?.Contains(s) ?? false }).ToArray();
+}
+
+@functions 
+{
+    string IsSelected(string option)
+    {
+        if(Model?.Contains(option) ?? false)
+        {
+            return "checked=\"checked\"";
+        }
+        return string.Empty;
+    }
+}
+
+@for(var i = 0; i < options.Count();i++)
+{
+    <div class="form-check">
+        <input class="form-check-input" type="radio" id="@Html.Id($"options[{i}].Selected")" name="@Html.NameForModel()" value="@options[i].Value" @(IsSelected(options[i].Value)) />
+        <label class="form-check-label" asp-for="@options[i].Selected">@options[i].Text</label>
+    </div>
+}

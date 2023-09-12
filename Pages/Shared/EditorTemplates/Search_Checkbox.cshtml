@@ -1,0 +1,18 @@
+﻿@using System.Reflection;
+@using System.Linq.Expressions;
+@using System.ComponentModel.DataAnnotations;
+
+@{
+    var options = (ViewData["options"] as IEnumerable<SelectListItem>)?.ToArray();
+}
+
+@if(options != null)
+{
+    for (var i = 0; i < options.Count(); i++)
+    {
+        <div class="form-check">
+            <input asp-for="@options[i].Selected" class="form-check-input" type="checkbox" id="@options[i].Selected" name="@Html.NameForModel()" value="@options[i].Value" />
+            <label class="form-check-label" asp-for="@options[i].Selected">@options[i].Text</label>
+        </div>
+    }
+}

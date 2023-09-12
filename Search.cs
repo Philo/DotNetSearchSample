@@ -1,170 +1,120 @@
 ﻿using Bogus;
-using MediatR;
 using System.ComponentModel.DataAnnotations;
-using System.Linq.Expressions;
 
-namespace SearchSample
+namespace SearchSample;
+
+public static class Search
 {
-    public static class Search
+    public class Request : ISearchRequestBase<SearchParameters, DataModel>
     {
-        public class Request : IRequest<PaginatedList<DataModel>>
+        public Request(SearchParameters searchParameters)
         {
-            public Request(SearchParameters searchParameters)
-            {
-                SearchParameters = searchParameters;
-            }
-
-            public SearchParameters SearchParameters { get; }
+            Parameters = searchParameters;
         }
 
-        private static async Task<IQueryable<DataModel>> GetDataQueryable()
+        public SearchParameters Parameters { get; }
+    }
+
+    public class Handler : SearchBaseHandler<Request, SearchParameters, DataModel>
+    {
+        protected override async Task<IQueryable<DataModel>> GetDataQueryable(CancellationToken cancellationToken)
         {
             return await Task.FromResult(DataModel.GetData().AsQueryable());
         }
 
-        private static IQueryable<DataModel> ApplySearchText(IQueryable<DataModel> query, Request request)
+        protected override IQueryable<DataModel> ApplySearchText(IQueryable<DataModel> query, SearchParameters parameters)
         {
-            if (!string.IsNullOrWhiteSpace(request.SearchParameters.Query))
+            if (!string.IsNullOrWhiteSpace(parameters.Query))
             {
                 query = query.Where(s =>
-                        s.GivenName.Contains(request.SearchParameters.Query, StringComparison.InvariantCultureIgnoreCase)
+                        s.GivenName.Contains(parameters.Query, StringComparison.InvariantCultureIgnoreCase)
                     ||
-                        s.FamilyName.Contains(request.SearchParameters.Query, StringComparison.InvariantCultureIgnoreCase)
+                        s.FamilyName.Contains(parameters.Query, StringComparison.InvariantCultureIgnoreCase)
                     ||
-                        s.EmailAddress.Contains(request.SearchParameters.Query, StringComparison.InvariantCultureIgnoreCase)
+                        s.EmailAddress.Contains(parameters.Query, StringComparison.InvariantCultureIgnoreCase)
                 );
             }
 
             return query;
         }
 
-        private static IQueryable<DataModel> ApplyFilters(IQueryable<DataModel> query, Request request)
+        protected override IQueryable<DataModel> ApplyFilters(IQueryable<DataModel> query, SearchParameters parameters)
         {
-            if (!string.IsNullOrWhiteSpace(request.SearchParameters.State) && Enum.TryParse<UserStateOption>(request.SearchParameters.State, out var state))
+            static IEnumerable<TEnum> ToEnumList<TEnum>(IEnumerable<string> options) where TEnum : struct
+            {
+                foreach (var option in options)
+                {
+                    if (Enum.TryParse<TEnum>(option, out var enumOption))
+                    {
+                        yield return enumOption;
+                    }
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(parameters.State) && Enum.TryParse<UserStateOption>(parameters.State, out var state))
             {
                 query = query.Where(s => s.State == state);
             }
 
-            if (request.SearchParameters.IsArchived.HasValue)
+            if (parameters.MultiState?.Any() ?? false)
             {
-                query = query.Where(s => s.IsArchived == request.SearchParameters.IsArchived);
+                var states = ToEnumList<UserStateOption>(parameters.MultiState);
+                query = query.Where(s => states.Contains(s.State));
+            }
+
+            if (parameters.IsArchived.HasValue)
+            {
+                query = query.Where(s => s.IsArchived == parameters.IsArchived);
             }
 
             return query;
         }
 
-        private static IQueryable<DataModel> ApplySorting(IQueryable<DataModel> query, Request request)
+        protected override IQueryable<DataModel> ApplySorting(IQueryable<DataModel> query, IHasSorting parameters)
         {
-            if (request.SearchParameters.SortBy != null && request.SearchParameters.SortBy.Name != null && request.SearchParameters.SortBy.Direction != null)
+            if (parameters.HasSort() && parameters.IsSortable<DataModel>())
             {
-                //var validSortColumns = new[] { 
-                //    nameof(DataModel.GivenName), 
-                //    nameof(DataModel.FamilyName), 
-                //    nameof(DataModel.EmailAddress), 
-                //    nameof(DataModel.State), 
-                //    nameof(DataModel.IsArchived) 
-                //};
-
-                var validSortColumns = SortableAttribute.GetSortableColumnNames<DataModel>();
-
-                var validSortDirections = new[]
-                {
-                    "asc", "desc"
-                };
-
-                if(validSortColumns.Contains(request.SearchParameters.SortBy.Name) && validSortDirections.Contains(request.SearchParameters.SortBy.Direction))
-                {
-                    query = query.OrderBy(request.SearchParameters.SortBy.Name, request.SearchParameters.SortBy.Direction?.ToLowerInvariant() == "desc");
-                }
+                query = query.OrderBy(parameters);
             }
 
             return query;
         }
-
-        public class Handler : IRequestHandler<Request, PaginatedList<DataModel>>
-        {
-            public async Task<PaginatedList<DataModel>> Handle(Request request, CancellationToken cancellationToken)
-            {
-                var query = await GetDataQueryable();
-
-                if (request.SearchParameters == null)
-                {
-                    return PaginatedList<DataModel>.Create(Enumerable.Empty<DataModel>().AsQueryable(), 1, PaginationInfo.DefaultPageSize);
-                }
-
-                query = ApplySearchText(query, request);
-                query = ApplyFilters(query, request);
-                query = ApplySorting(query, request);
-
-               return PaginatedList<DataModel>.Create(query, request.SearchParameters.Paging?.Page ?? 1, request.SearchParameters.Paging?.Size ?? PaginationInfo.DefaultPageSize);
-            }
-        }
-
-        public static IQueryable<TEntity> OrderBy<TEntity>(this IQueryable<TEntity> source,
-                                            string orderByProperty, bool desc)
-        {
-            string command = desc ? "OrderByDescending" : "OrderBy";
-            var type = typeof(TEntity);
-            var property = type.GetProperty(orderByProperty);
-
-            if(property == null)
-            {
-                return source;
-            }
-
-            var parameter = Expression.Parameter(type, "p");
-            var propertyAccess = Expression.MakeMemberAccess(parameter, property);
-            var orderByExpression = Expression.Lambda(propertyAccess, parameter);
-            var resultExpression = Expression.Call(typeof(Queryable), command,
-                                                   new[] { type, property.PropertyType },
-                                                   source.AsQueryable().Expression,
-                                                   Expression.Quote(orderByExpression));
-            return source.AsQueryable().Provider.CreateQuery<TEntity>(resultExpression);
-        }
     }
+}
 
-    public class DataModel
-    {
-        [DataType(DataType.Text), Sortable]
-        public string GivenName { get; set; } = string.Empty;
+public class DataModel
+{
+    [DataType(DataType.Text), Sortable]
+    public string GivenName { get; set; } = string.Empty;
 
-        [DataType(DataType.Text), Sortable]
-        public string FamilyName { get; set; } = string.Empty;
+    [DataType(DataType.Text), Sortable]
+    public string FamilyName { get; set; } = string.Empty;
 
-        [DataType(DataType.EmailAddress), Sortable]
-        public string EmailAddress { get; set; } = string.Empty;
+    [DataType(DataType.EmailAddress), Sortable]
+    public string EmailAddress { get; set; } = string.Empty;
 
-        public bool IsArchived { get; set; } = false;
+    public bool IsArchived { get; set; } = false;
 
-        public UserStateOption State { get; set; }
+    public UserStateOption State { get; set; }
 
-        private static readonly Faker<DataModel> Faker = new Faker<DataModel>()
-            .RuleFor(m => m.GivenName, f => f.Person.FirstName)
-            .RuleFor(m => m.FamilyName, f => f.Person.LastName)
-            .RuleFor(m => m.EmailAddress, f => f.Person.Email)
-            .RuleFor(m => m.IsArchived, f => f.Random.Bool())
-            .RuleFor(m => m.State, f => f.Random.Enum<UserStateOption>());
+    private static readonly Faker<DataModel> Faker = new Faker<DataModel>()
+        .RuleFor(m => m.GivenName, f => f.Person.FirstName)
+        .RuleFor(m => m.FamilyName, f => f.Person.LastName)
+        .RuleFor(m => m.EmailAddress, f => f.Person.Email)
+        .RuleFor(m => m.IsArchived, f => f.Random.Bool())
+        .RuleFor(m => m.State, f => f.Random.Enum<UserStateOption>());
 
-        private static readonly IEnumerable<DataModel> FakeData = Faker.Generate(25);
+    private static readonly IEnumerable<DataModel> FakeData = Faker.Generate(250);
 
-        public static IEnumerable<DataModel> GetData() => FakeData;
-    }
+    public static IEnumerable<DataModel> GetData() => FakeData;
+}
 
-    public enum UserStateOption
-    {
-        Active,
-        Complete,
-        Cancelled
-    }
-
-    [AttributeUsage(AttributeTargets.Property)]
-    public class SortableAttribute : Attribute
-    {
-        public SortableAttribute() { }
-
-        public static IEnumerable<string> GetSortableColumnNames<TData>() where TData : class
-        {
-            return typeof(TData).GetProperties().Where(p => p.IsDefined(typeof(SortableAttribute), false)).Select(p => p.Name);
-        }
-    }
+public enum UserStateOption
+{
+    [Display(Name = "Is Active")]
+    Active,
+    [Display(Name = "Is Complete")]
+    Complete,
+    [Display(Name = "Is Cancelled")]
+    Cancelled
 }

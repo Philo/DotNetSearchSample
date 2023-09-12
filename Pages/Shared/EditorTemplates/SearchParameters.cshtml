@@ -7,6 +7,9 @@
         <editor for="Query" template-name="Search_Text" />
         <editor for="IsArchived" template-name="Search_Boolean" />
         <editor for="State" />
+        <editor for="MultiState" template-name="Search_UserStateOption" />
         <editor for="Paging!.Size" template-name="Search_Size" />
+        @Html.HiddenFor(m => m!.SortBy!.Name)
+        @Html.HiddenFor(m => m!.SortBy!.Direction)
     </div>
 </div>

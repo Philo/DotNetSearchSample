@@ -1,18 +1,19 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace SearchSample
+namespace SearchSample;
+
+public class SearchParameters: IHasPagination, IHasSorting
 {
-    public class SearchParameters
-    {
-        public string? Query { get; set; }
+    public string? Query { get; set; }
 
-        public bool? IsArchived { get; set; }
+    public bool? IsArchived { get; set; }
 
-        [UIHint(nameof(UserStateOption))]
-        public string? State { get; set; }
+    [UIHint(nameof(UserStateOption))]
+    public string? State { get; set; }
 
-        public SortColumnParameter? SortBy { get; set; }
+    public IEnumerable<string>? MultiState { get; set; }
 
-        public PaginationInfo? Paging { get; set; }
-    }
+    public ISortColumnParameter? SortBy { get; set; } = new SortColumnParameter();
+
+    public IPaginationInfo? Paging { get; set; } = new PaginationInfo();
 }
