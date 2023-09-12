@@ -1,0 +1,13 @@
+﻿@using System.Reflection;
+@using System.Linq.Expressions;
+@model LocationSearch.Parameters
+
+<div class="row">
+    <div class="col-md-4">
+        <editor for="Query" template-name="Search_Text" />
+        <editor for="Population" template-name="PopulationBucketOption"/>
+        <editor for="Paging!.Size" template-name="Search_Size" />
+        @Html.HiddenFor(m => m!.SortBy!.Name)
+        @Html.HiddenFor(m => m!.SortBy!.Direction)
+    </div>
+</div>

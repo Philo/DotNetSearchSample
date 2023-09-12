@@ -5,11 +5,17 @@ namespace SearchSample;
 public abstract class SearchBaseHandler<TRequest, TParameters, TModel> : IRequestHandler<TRequest, PaginatedList<TModel>>
     where TParameters : IHasSorting, IHasPagination
     where TRequest : ISearchRequestBase<TParameters, TModel>
+    where TModel : class
 {
     protected abstract Task<IQueryable<TModel>> GetDataQueryable(CancellationToken cancellationToken);
 
     protected virtual IQueryable<TModel> ApplySorting(IQueryable<TModel> query, IHasSorting parameters)
     {
+        if (parameters.HasSort() && parameters.IsSortable<TModel>())
+        {
+            query = query.OrderBy(parameters);
+        }
+
         return query;
     }
 

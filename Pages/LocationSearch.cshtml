@@ -1,0 +1,95 @@
+﻿@page
+@using System.Linq.Expressions;
+@using System.Reflection;
+@using Microsoft.AspNetCore.WebUtilities;
+@using System.Text;
+@using SearchSample;
+@model LocationSearchModel
+@{
+    ViewData["Title"] = "Home page";
+
+    var sortByColumnHtmlFormName = Html.NameFor(m => m!.Search!.SortBy!.Name);
+    var sortByDirectionHtmlFormName = Html.NameFor(m => m!.Search!.SortBy!.Direction);
+
+    var pageIndexHtmlFormName = Html.NameFor(m => m!.Search!.Paging!.Page);
+    var pageSizeHtmlFormName = Html.NameFor(m => m!.Search!.Paging!.Size);
+
+    IDictionary<string, string> ApplySortingQueryParameterDictionaryFor<T>(Expression<Func<LocationSearchModel, T>> expression)
+    {
+        var sortCol = Html.NameFor(expression);
+
+        return HttpContext.Request.QueryString.ApplySortingQueryParameterDictionary(
+            pageIndexHtmlFormName, 
+            sortByColumnHtmlFormName, 
+            sortByDirectionHtmlFormName, 
+            sortCol);
+    }
+
+    async Task RenderSortColumnHeader<T>(Expression<Func<LocationSearchModel, T>> expression)
+    {
+        if (Html.IsSortableColumn(expression))
+        {
+            @if (Html.IsSortedByColumn(sortByColumnHtmlFormName, sortByDirectionHtmlFormName, expression))
+            {
+                if (Model!.Search!.SortBy!.Direction == SortDirectionOption.Asc)
+                {
+                    <text>&#8593; </text>
+                }
+                else
+                {
+                    <text>&#8595; </text>
+                }
+            }
+            <a asp-page="LocationSearch" asp-all-route-data="@ApplySortingQueryParameterDictionaryFor(expression)">
+                @Html.DisplayNameFor(expression)
+            </a>
+        }
+        else
+        {
+            <span>
+                @Html.DisplayNameFor(expression)
+            </span>
+        }
+    }
+}
+
+
+<form asp-page="LocationSearch" asp-antiforgery="false" method="get" asp-all-route-data="@HttpContext.Request.QueryString.ApplyPagingQueryParameterDictionary(pageIndexHtmlFormName, pageSizeHtmlFormName, 1)">
+    <editor for="Search" template-name="LocationSearch.Parameters" />
+    <button class="btn btn-primary" type="submit">Submit</button>
+</form>
+
+<p>
+<table class="table table-responsive-lg">
+    <tr>
+        <th>
+            @{ await RenderSortColumnHeader(m => m.Data!.First().Name); }
+        </th>
+        <th>
+            @{ await RenderSortColumnHeader(m => m.Data!.First().Country); }
+        </th>
+        <th>
+            @{ await RenderSortColumnHeader(m => m.Data!.First().Population); }
+        </th>
+    </tr>
+    @foreach(var item in Model!.Data ?? Enumerable.Empty<LocationDataModel>())
+    {
+        <tr>
+            <td asp-display-for="@item.Name"></td>
+            <td asp-display-for="@item.Country"></td>
+            <td asp-display-for="@item.Population"></td>
+        </tr>
+    }
+    </table>
+</p>
+
+<p>
+    @{
+        var prevDisabled = !Model.Data!.HasPreviousPage ? "disabled" : "";
+        var nextDisabled = !Model.Data.HasNextPage ? "disabled" : "";
+    }
+
+    <a asp-page="LocationSearch" asp-all-route-data="@HttpContext.Request.QueryString.ApplyPagingQueryParameterDictionary(pageIndexHtmlFormName, pageSizeHtmlFormName, Model.Data.PageIndex - 1)" class="btn btn-default @prevDisabled">Previous</a>
+    <span>Page @Model.Data.PageIndex of @Model.Data.TotalPages</span>
+    <a asp-page="LocationSearch" asp-all-route-data="@HttpContext.Request.QueryString.ApplyPagingQueryParameterDictionary(pageIndexHtmlFormName, pageSizeHtmlFormName, Model.Data.PageIndex + 1)" class="btn btn-default @nextDisabled">Next</a>
+</p>
